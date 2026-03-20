@@ -6,8 +6,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trash2 } from "lucide-react";
-import { ResumeData } from "@/pages/Index";
+import { Plus, Trash2, Upload } from "lucide-react";
+import { ResumeData } from "@/pages/Editor";
+import api from "@/lib/api";
 
 interface ResumeFormProps {
   resumeData: ResumeData;
@@ -123,13 +124,62 @@ export const ResumeForm = ({ resumeData, setResumeData }: ResumeFormProps) => {
     });
   };
 
+  const addCertificate = () => {
+    const newCertificate = {
+      id: Date.now().toString(),
+      name: "",
+      issuer: "",
+      date: "",
+      fileUrl: "",
+    };
+    setResumeData({
+      ...resumeData,
+      certificates: [...resumeData.certificates, newCertificate],
+    });
+  };
+
+  const updateCertificate = (id: string, field: string, value: string) => {
+    setResumeData({
+      ...resumeData,
+      certificates: resumeData.certificates.map((cert) =>
+        cert.id === id ? { ...cert, [field]: value } : cert
+      ),
+    });
+  };
+
+  const removeCertificate = (id: string) => {
+    setResumeData({
+      ...resumeData,
+      certificates: resumeData.certificates.filter((cert) => cert.id !== id),
+    });
+  };
+
+  const [uploadingCertId, setUploadingCertId] = useState<string | null>(null);
+
+  const uploadCertificateFile = async (id: string, file: File) => {
+    try {
+      setUploadingCertId(id);
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await api.post("/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      updateCertificate(id, "fileUrl", response.data.url);
+    } catch (error) {
+      console.error("Error uploading certificate:", error);
+    } finally {
+      setUploadingCertId(null);
+    }
+  };
+
   return (
     <Tabs defaultValue="personal" className="w-full">
-      <TabsList className="grid w-full grid-cols-4 mb-6">
+      <TabsList className="grid w-full grid-cols-5 mb-6">
         <TabsTrigger value="personal">Personal</TabsTrigger>
         <TabsTrigger value="experience">Experience</TabsTrigger>
         <TabsTrigger value="education">Education</TabsTrigger>
         <TabsTrigger value="skills">Skills</TabsTrigger>
+        <TabsTrigger value="certificates">Certificates</TabsTrigger>
       </TabsList>
 
       <TabsContent value="personal" className="space-y-6">
@@ -139,6 +189,15 @@ export const ResumeForm = ({ resumeData, setResumeData }: ResumeFormProps) => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 gap-4">
+              <div>
+                <Label htmlFor="title">Resume Title</Label>
+                <Input
+                  id="title"
+                  value={resumeData.title || ""}
+                  onChange={(e) => setResumeData({ ...resumeData, title: e.target.value })}
+                  placeholder="Software Engineer Resume"
+                />
+              </div>
               <div>
                 <Label htmlFor="fullName">Full Name</Label>
                 <Input
@@ -385,10 +444,89 @@ export const ResumeForm = ({ resumeData, setResumeData }: ResumeFormProps) => {
               <div>
                 <Label>Skills (comma-separated)</Label>
                 <Textarea
-                  value={skill.items.join(", ")}
-                  onChange={(e) => updateSkillCategory(skill.id, "items", e.target.value.split(", ").filter(Boolean))}
+                  value={skill.items.join(",")}
+                  onChange={(e) => updateSkillCategory(skill.id, "items", e.target.value.split(","))}
                   placeholder="JavaScript, React, Node.js, Python, SQL"
                 />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </TabsContent>
+
+      <TabsContent value="certificates" className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h3 className="text-lg font-semibold">Certificates</h3>
+          <Button onClick={addCertificate} size="sm" className="flex items-center space-x-2">
+            <Plus className="w-4 h-4" />
+            <span>Add Certificate</span>
+          </Button>
+        </div>
+
+        {resumeData.certificates.map((cert, index) => (
+          <Card key={cert.id}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-base">Certificate {index + 1}</CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => removeCertificate(cert.id)}
+                className="text-red-600 hover:text-red-700"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Certificate Name</Label>
+                  <Input
+                    value={cert.name}
+                    onChange={(e) => updateCertificate(cert.id, "name", e.target.value)}
+                    placeholder="e.g. AWS Certified Solutions Architect"
+                  />
+                </div>
+                <div>
+                  <Label>Issuer</Label>
+                  <Input
+                    value={cert.issuer}
+                    onChange={(e) => updateCertificate(cert.id, "issuer", e.target.value)}
+                    placeholder="e.g. Amazon Web Services"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Issue Date</Label>
+                  <Input
+                    type="month"
+                    value={cert.date}
+                    onChange={(e) => updateCertificate(cert.id, "date", e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label>Upload Certificate (Image/PDF)</Label>
+                  <div className="flex items-center space-x-2 mt-1">
+                    <Input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) uploadCertificateFile(cert.id, file);
+                      }}
+                      className="cursor-pointer"
+                    />
+                    {uploadingCertId === cert.id && <span className="text-sm text-blue-600">Uploading...</span>}
+                    {cert.fileUrl && !uploadingCertId && (() => {
+                      const baseUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://localhost:5000';
+                      return (
+                        <a href={`${baseUrl}${cert.fileUrl}`} target="_blank" rel="noopener noreferrer" className="text-sm text-green-600 underline truncate max-w-[150px] inline-block">
+                          View File
+                        </a>
+                      );
+                    })()}
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>

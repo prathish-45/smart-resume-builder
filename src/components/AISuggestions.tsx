@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, CheckCircle, AlertCircle, Info } from "lucide-react";
-import { ResumeData } from "@/pages/Index";
+import { ResumeData } from "@/pages/Editor";
 
 interface AISuggestionsProps {
   resumeData: ResumeData;
@@ -46,10 +46,10 @@ export const AISuggestions = ({ resumeData, onClose, onApplySuggestion }: AISugg
 
     // Check for action verbs in experience
     if (resumeData.experience.length > 0) {
-      const hasWeakDescriptions = resumeData.experience.some(exp => 
+      const hasWeakDescriptions = resumeData.experience.some(exp =>
         exp.description && !exp.description.match(/\b(achieved|managed|led|developed|implemented|improved|increased|reduced|created|designed|launched)\b/i)
       );
-      
+
       if (hasWeakDescriptions) {
         suggestions.push({
           id: "action-verbs",
@@ -65,10 +65,10 @@ export const AISuggestions = ({ resumeData, onClose, onApplySuggestion }: AISugg
 
     // Check for quantifiable achievements
     if (resumeData.experience.length > 0) {
-      const hasQuantifiableResults = resumeData.experience.some(exp => 
+      const hasQuantifiableResults = resumeData.experience.some(exp =>
         exp.description && exp.description.match(/\d+%|\$\d+|\d+\+|increased|decreased|improved/i)
       );
-      
+
       if (!hasQuantifiableResults) {
         suggestions.push({
           id: "quantify-achievements",
@@ -129,7 +129,7 @@ export const AISuggestions = ({ resumeData, onClose, onApplySuggestion }: AISugg
 
   const handleGenerateSuggestions = async () => {
     setLoading(true);
-    
+
     // Simulate AI processing time
     setTimeout(() => {
       const newSuggestions = generateSuggestions();

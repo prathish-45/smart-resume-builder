@@ -1,8 +1,14 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const connectDB = require('./config/db');
+
+require('dotenv').config();
 
 const app = express();
+
+// Connect to database completely independently when app starts
+connectDB();
 
 // Middleware
 app.use(cors());
